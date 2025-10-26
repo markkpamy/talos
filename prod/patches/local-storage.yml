@@ -3,6 +3,6 @@ kind: UserVolumeConfig
 name: local-path-provisioner
 provisioning:
   diskSelector:
-    match: disk.transport == 'nvme' && !system_disk
+    match: disk.transport == 'virtio' && !system_disk
   minSize: 300GB
   maxSize: 300GB
