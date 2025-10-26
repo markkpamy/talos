@@ -3,12 +3,15 @@ cluster:
     # --- Cilium Installation ---
     - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/cilium/install-cilium.yaml
     - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/cilium/L2Announcement.yaml
-#    # --- ArgoCD Installation ---
-#    - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/argocd/argocd.namespace.yaml
-#    - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/argocd/argocd.install.yaml
+
     # --- Metrics Server Installation ---
     - https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/main/deploy/standalone-install.yaml
     - https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
     # --- Cluster ---
-    - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/turing/bootstrap/ip-pool.yml
-    - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/turing/bootstrap/bootstrap.yml
+    - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/cilium/loadbalancer-ippool.yaml
+
+    # --- Flux CD Installation via Operator ---
+    - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/flux/flux-namespace.yaml
+    - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/flux/flux-operator-install.yaml
+    - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/flux/flux-instance.yaml

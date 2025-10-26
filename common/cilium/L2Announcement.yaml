@@ -1,0 +1,16 @@
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: default-l2-policy
+spec:
+  loadBalancerIPs: true
+  externalIPs: true
+#  interfaces:
+#  - ^eth[0-9]+
+#  - ^ens[0-9]+
+#  - ^enp[0-9]+s[0-9]+
+#  nodeSelector:
+#    matchExpressions:
+#    - key: node.kubernetes.io/exclude-from-external-load-balancers
+#      operator: DoesNotExist
