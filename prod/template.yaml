@@ -1,0 +1,34 @@
+kind: Cluster
+name: turing
+kubernetes:
+  version: v1.34.1
+talos:
+  version: v1.11.1
+features:
+  enableWorkloadProxy: false
+  diskEncryption: false
+  useEmbeddedDiscoveryService: true
+patches:
+  - name: spegel
+    file: patches/spegel.yaml
+  - name: enable-workload
+    file: patches/workload-on-cp.yml
+  - name: kubespan-enabled
+    file: patches/kubespan.yml
+  - name: no-cni # we will install cilium in extraManifests
+    file: patches/cni.yml
+  - name: disable-kubeproxy
+    file: patches/disable-kubeproxy.yml
+  - name: manifests
+    file: patches/extraManifests.yml
+  - name: metric-server
+    file: patches/metrics-server.yml
+#systemExtensions:
+#  - siderolabs/iscsi-tools
+---
+kind: ControlPlane
+labels:
+  type: control-plane
+machineClass:
+  name: talos-control-plane
+  size: 1
