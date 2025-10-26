@@ -253,7 +253,7 @@ data:
   enable-l2-announcements: "true"
   procfs: "/host/proc"
   bpf-root: "/sys/fs/bpf"
-  cgroup-root: "C:/Program Files/Git/sys/fs/cgroup"
+  cgroup-root: "/sys/fs/cgroup"
 
   identity-management-mode: "agent"
   enable-sctp: "false"
@@ -1043,7 +1043,7 @@ spec:
           mountPropagation: HostToContainer
         # Check for duplicate mounts before mounting
         - name: cilium-cgroup
-          mountPath: C:/Program Files/Git/sys/fs/cgroup
+          mountPath: /sys/fs/cgroup
         - name: cilium-run
           mountPath: /var/run/cilium
         - name: cilium-netns
@@ -1191,7 +1191,7 @@ spec:
           mountPath: /sys/fs/bpf
           # Required to mount cgroup filesystem from the host to cilium agent pod
         - name: cilium-cgroup
-          mountPath: C:/Program Files/Git/sys/fs/cgroup
+          mountPath: /sys/fs/cgroup
           mountPropagation: HostToContainer
         - name: cilium-run
           mountPath: /var/run/cilium # wait-for-kube-proxy
@@ -1261,7 +1261,7 @@ spec:
       # To keep state between restarts / upgrades for cgroup2 filesystem
       - name: cilium-cgroup
         hostPath:
-          path: C:/Program Files/Git/sys/fs/cgroup
+          path: /sys/fs/cgroup
           type: DirectoryOrCreate
       # To install cilium cni plugin in the host
       - name: cni-path
