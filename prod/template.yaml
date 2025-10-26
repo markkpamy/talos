@@ -23,6 +23,8 @@ patches:
     file: patches/extraManifests.yml
   - name: metric-server
     file: patches/metrics-server.yml
+  - name: local-storage
+    file: patches/local-storage.yml
 #systemExtensions:
 #  - siderolabs/iscsi-tools
 ---
