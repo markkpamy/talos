@@ -1,3 +1,5 @@
+## Install with:
+#  omnictl cluster template sync -f template.yaml
 kind: Cluster
 name: talos-prod
 kubernetes:
