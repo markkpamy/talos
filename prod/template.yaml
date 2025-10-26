@@ -1,5 +1,5 @@
 kind: Cluster
-name: turing
+name: talos-prod
 kubernetes:
   version: v1.34.1
 talos:
@@ -32,5 +32,5 @@ kind: ControlPlane
 labels:
   type: control-plane
 machineClass:
-  name: talos-control-plane
+  name: control-plane
   size: 1
