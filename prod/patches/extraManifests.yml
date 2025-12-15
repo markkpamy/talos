@@ -11,6 +11,9 @@ cluster:
     # --- Cluster ---
     - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/cilium/loadbalancer-ippool.yaml
 
+    # --- CoreDNS Custom Configuration ---
+    - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/coredns/coredns-custom-dns.yaml
+
     # --- Flux CD Installation via Operator ---
     - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/flux/flux-namespace.yaml
     - https://raw.githubusercontent.com/markkpamy/talos/refs/heads/main/common/flux/flux-operator-install.yaml
