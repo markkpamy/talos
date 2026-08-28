@@ -106,7 +106,7 @@ flux get all -A
 ## Flux Instance Configuration
 
 The FluxInstance is configured with:
-- **Version**: 2.7.x (latest patch version)
+- **Version**: 2.9.x (latest patch version)
 - **Controllers**: source, kustomize, helm, notification, image-reflector, image-automation
 - **Sync**: GitHub repo with 1-minute interval
 - **Path**: clusters/prod-talos-cluster (matching your existing GitOps structure)
