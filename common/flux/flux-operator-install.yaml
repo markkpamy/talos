@@ -9,11 +9,14 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.21.0
   name: fluxinstances.fluxcd.controlplane.io
 spec:
   group: fluxcd.controlplane.io
   names:
+    categories:
+    - fluxcd
+    - fluxcd-appliers
     kind: FluxInstance
     listKind: FluxInstanceList
     plural: fluxinstances
@@ -163,7 +166,11 @@ spec:
               components:
                 description: |-
                   Components is the list of controllers to install.
-                  Defaults to a commonly used subset.
+                  Defaults to the core Flux controllers:
+                    - source-controller
+                    - kustomize-controller
+                    - helm-controller
+                    - notification-controller
                 items:
                   description: Component is the name of a controller to install.
                   enum:
@@ -201,6 +208,16 @@ spec:
                     description: |-
                       Registry address to pull the distribution images from
                       e.g. 'ghcr.io/fluxcd'.
+                    type: string
+                  variant:
+                    description: |-
+                      Variant specifies the Flux distribution flavor stored
+                      in the registry.
+                    enum:
+                    - upstream-alpine
+                    - enterprise-alpine
+                    - enterprise-distroless
+                    - enterprise-distroless-fips
                     type: string
                   version:
                     description: Version semver expression e.g. '2.x', '2.3.x'.
@@ -300,7 +317,7 @@ spec:
                       Storage defines if the source-controller shards
                       should use an emptyDir or a persistent volume claim for storage.
                       Accepted values are 'ephemeral' or 'persistent', defaults to 'ephemeral'.
-                      For 'persistent' to take effect, the '.spec.storage' field must be set.
+                      When set to 'persistent', the '.spec.storage' field must be set.
                     enum:
                     - ephemeral
                     - persistent
@@ -360,7 +377,8 @@ spec:
                     description: |-
                       Provider specifies OIDC provider for source authentication.
                       For OCIRepository and Bucket the provider can be set to 'aws', 'azure' or 'gcp'.
-                      for GitRepository the accepted value can be set to 'azure' or 'github'.
+                      For GitRepository the provider can be set to 'aws' (requires Flux 2.9 or later),
+                      'azure' or 'github'.
                       To disable OIDC authentication the provider can be set to 'generic' or left empty.
                     enum:
                     - generic
@@ -394,6 +412,14 @@ spec:
                 - ref
                 - url
                 type: object
+                x-kubernetes-validations:
+                - message: sync.provider 'gcp' is only supported for OCIRepository
+                    and Bucket
+                  rule: '!has(self.provider) || self.provider != ''gcp'' || self.kind
+                    == ''OCIRepository'' || self.kind == ''Bucket'''
+                - message: sync.provider 'github' is only supported for GitRepository
+                  rule: '!has(self.provider) || self.provider != ''github'' || self.kind
+                    == ''GitRepository'''
               wait:
                 default: true
                 description: |-
@@ -403,6 +429,10 @@ spec:
             required:
             - distribution
             type: object
+            x-kubernetes-validations:
+            - message: .spec.storage must be set when .spec.sharding.storage is 'persistent'
+              rule: '!has(self.sharding) || !has(self.sharding.storage) || self.sharding.storage
+                != ''persistent'' || has(self.storage)'
           status:
             description: FluxInstanceStatus defines the observed state of FluxInstance
             properties:
@@ -608,11 +638,13 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.21.0
   name: fluxreports.fluxcd.controlplane.io
 spec:
   group: fluxcd.controlplane.io
   names:
+    categories:
+    - fluxcd
     kind: FluxReport
     listKind: FluxReportList
     plural: fluxreports
@@ -768,7 +800,7 @@ spec:
                         failing:
                           description: |-
                             Failing is the number of reconciled
-                            resources in the Failing state.
+                            resources in the Failing state and not Suspended.
                           type: integer
                         running:
                           description: |-
@@ -904,11 +936,15 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.21.0
   name: resourcesetinputproviders.fluxcd.controlplane.io
 spec:
   group: fluxcd.controlplane.io
   names:
+    categories:
+    - all
+    - fluxcd
+    - fluxcd-sources
     kind: ResourceSetInputProvider
     listKind: ResourceSetInputProviderList
     plural: resourcesetinputproviders
@@ -961,9 +997,9 @@ spec:
                   - a PEM-encoded CA certificate (`ca.crt`)
                   - a PEM-encoded client certificate (`tls.crt`) and private key (`tls.key`)
 
-                  When connecting to a Git or OCI provider that uses self-signed certificates, the CA certificate
-                  must be set in the Secret under the 'ca.crt' key to establish the trust relationship.
-                  When connecting to an OCI provider that supports client certificates (mTLS), the client certificate
+                  When connecting to a Git, OCI, or ExternalService provider that uses self-signed certificates,
+                  the CA certificate must be set in the Secret under the 'ca.crt' key to establish the trust relationship.
+                  When connecting to a provider that supports client certificates (mTLS), the client certificate
                   and private key must be set in the Secret under the 'tls.crt' and 'tls.key' keys, respectively.
                 properties:
                   name:
@@ -989,6 +1025,11 @@ spec:
                       ExcludeBranch specifies the regular expression to filter the branches
                       that the input provider should exclude.
                     type: string
+                  excludeEnvironment:
+                    description: |-
+                      ExcludeEnvironment specifies the regular expression to filter the environments
+                      that the input provider should exclude.
+                    type: string
                   excludeTag:
                     description: |-
                       ExcludeTag specifies the regular expression to filter the tags
@@ -997,6 +1038,11 @@ spec:
                   includeBranch:
                     description: |-
                       IncludeBranch specifies the regular expression to filter the branches
+                      that the input provider should include.
+                    type: string
+                  includeEnvironment:
+                    description: |-
+                      IncludeEnvironment specifies the regular expression to filter the environments
                       that the input provider should include.
                     type: string
                   includeTag:
@@ -1015,6 +1061,7 @@ spec:
                     description: |-
                       Limit specifies the maximum number of input sets to return.
                       When not set, the default limit is 100.
+                    maximum: 10000
                     type: integer
                   semver:
                     description: |-
@@ -1024,6 +1071,11 @@ spec:
                       Supported only for tags at the moment.
                     type: string
                 type: object
+              insecure:
+                description: |-
+                  Insecure allows connecting to an ExternalService or OCIArtifactTag provider
+                  over plain HTTP without TLS. When not set, the URL must use HTTPS.
+                type: boolean
               schedule:
                 description: Schedule defines the schedules for the input provider
                   to run.
@@ -1051,13 +1103,16 @@ spec:
                 type: array
               secretRef:
                 description: |-
-                  SecretRef specifies the Kubernetes Secret containing the basic-auth credentials
+                  SecretRef specifies the Kubernetes Secret containing the credentials
                   to access the input provider.
                   When connecting to a Git provider, the secret must contain the keys
                   'username' and 'password', and the password should be a personal access token
                   that grants read-only access to the repository.
                   When connecting to an OCI provider, the secret must contain a Kubernetes
                   Image Pull Secret, as if created by `kubectl create secret docker-registry`.
+                  When connecting to an ExternalService provider, the secret must contain either
+                  a 'token' key for bearer token authentication, or 'username' and 'password'
+                  keys for basic authentication.
                 properties:
                   name:
                     description: Name of the referent.
@@ -1065,6 +1120,74 @@ spec:
                 required:
                 - name
                 type: object
+              selectors:
+                description: |-
+                  Selectors specifies label selectors used to discover ExternalArtifact objects.
+                  Required when spec.type is 'ExternalArtifact' and must not be set otherwise.
+                items:
+                  description: ExternalArtifactSelector defines a selector for discovering
+                    ExternalArtifact objects.
+                  properties:
+                    matchExpressions:
+                      description: matchExpressions is a list of label selector requirements.
+                        The requirements are ANDed.
+                      items:
+                        description: |-
+                          A label selector requirement is a selector that contains values, a key, and an operator that
+                          relates the key and values.
+                        properties:
+                          key:
+                            description: key is the label key that the selector applies
+                              to.
+                            type: string
+                          operator:
+                            description: |-
+                              operator represents a key's relationship to a set of values.
+                              Valid operators are In, NotIn, Exists and DoesNotExist.
+                            type: string
+                          values:
+                            description: |-
+                              values is an array of string values. If the operator is In or NotIn,
+                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                              the values array must be empty. This array is replaced during a strategic
+                              merge patch.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                        required:
+                        - key
+                        - operator
+                        type: object
+                      type: array
+                      x-kubernetes-list-type: atomic
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      description: |-
+                        matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                        map is equivalent to an element of matchExpressions, whose key field is "key", the
+                        operator is "In", and the values array contains only "value". The requirements are ANDed.
+                      type: object
+                    name:
+                      description: |-
+                        Name selects a single ExternalArtifact by metadata.name.
+                        This field is mutually exclusive with matchLabels and matchExpressions.
+                      type: string
+                    namespace:
+                      description: |-
+                        Namespace scopes ExternalArtifact discovery.
+                        When empty, ExternalArtifacts are listed in the ResourceSetInputProvider namespace.
+                        When set to "*", ExternalArtifacts are listed across all namespaces by
+                        omitting the namespace option from List().
+                        Otherwise, ExternalArtifacts are listed only in the specified namespace.
+                      type: string
+                  type: object
+                  x-kubernetes-map-type: atomic
+                  x-kubernetes-validations:
+                  - message: name is mutually exclusive with matchLabels and matchExpressions
+                    rule: '!has(self.name) || (!has(self.matchLabels) && !has(self.matchExpressions))'
+                type: array
               serviceAccountName:
                 description: |-
                   ServiceAccountName specifies the name of the Kubernetes ServiceAccount
@@ -1095,13 +1218,22 @@ spec:
                 - GitLabBranch
                 - GitLabTag
                 - GitLabMergeRequest
+                - GitLabEnvironment
                 - AzureDevOpsBranch
                 - AzureDevOpsTag
                 - AzureDevOpsPullRequest
+                - AWSCodeCommitBranch
+                - AWSCodeCommitTag
+                - AWSCodeCommitPullRequest
+                - GiteaBranch
+                - GiteaTag
+                - GiteaPullRequest
                 - OCIArtifactTag
                 - ACRArtifactTag
                 - ECRArtifactTag
                 - GARArtifactTag
+                - ExternalService
+                - ExternalArtifact
                 type: string
               url:
                 description: |-
@@ -1116,29 +1248,61 @@ spec:
             x-kubernetes-validations:
             - message: spec.url must be empty when spec.type is 'Static'
               rule: self.type != 'Static' || !has(self.url)
-            - message: spec.url must not be empty when spec.type is not 'Static'
-              rule: self.type == 'Static' || has(self.url)
+            - message: spec.url must be empty when spec.type is 'ExternalArtifact'
+              rule: self.type != 'ExternalArtifact' || !has(self.url)
+            - message: spec.url must not be empty when spec.type is not 'Static' or
+                'ExternalArtifact'
+              rule: self.type == 'Static' || self.type == 'ExternalArtifact' || has(self.url)
             - message: spec.url must start with 'http://' or 'https://' when spec.type
                 is a Git provider
               rule: '!self.type.startsWith(''Git'') || self.url.startsWith(''http'')'
             - message: spec.url must start with 'http://' or 'https://' when spec.type
-                is a Git provider
-              rule: '!self.type.startsWith(''AzureDevOps'') || self.url.startsWith(''http'')'
+                is an AzureDevOps provider
+              rule: '!self.type.startsWith(''AzureDevOps'') || self.url.startsWith(''http://'')
+                || self.url.startsWith(''https://'')'
+            - message: spec.url must start with 'https://' when spec.type is a AWSCodeCommit
+                provider
+              rule: '!self.type.startsWith(''AWSCodeCommit'') || self.url.startsWith(''https://'')'
             - message: spec.url must start with 'oci://' when spec.type is an OCI
                 provider
               rule: '!self.type.endsWith(''ArtifactTag'') || self.url.startsWith(''oci'')'
+            - message: spec.url must include the repository path after the registry
+                host when spec.type is an OCI provider
+              rule: '!self.type.endsWith(''ArtifactTag'') || !self.url.startsWith(''oci://'')
+                || self.url.substring(6).contains(''/'')'
+            - message: spec.url must start with 'http://' or 'https://' when spec.type
+                is 'ExternalService'
+              rule: self.type != 'ExternalService' || self.url.startsWith('http')
+            - message: spec.insecure can only be set when spec.type is 'ExternalService'
+                or 'OCIArtifactTag'
+              rule: '!has(self.insecure) || !self.insecure || self.type == ''ExternalService''
+                || self.type == ''OCIArtifactTag'''
+            - message: spec.url must use 'https://' unless spec.insecure is true
+              rule: self.type != 'ExternalService' || !self.url.startsWith('http://')
+                || (has(self.insecure) && self.insecure)
             - message: cannot specify spec.serviceAccountName when spec.type is not
-                one of AzureDevOps* or *ArtifactTag
+                one of AzureDevOps*, AWSCodeCommit*, *ArtifactTag or ExternalArtifact
               rule: '!has(self.serviceAccountName) || self.type.startsWith(''AzureDevOps'')
-                || self.type.endsWith(''ArtifactTag'')'
+                || self.type.startsWith(''AWSCodeCommit'') || self.type.endsWith(''ArtifactTag'')
+                || self.type == ''ExternalArtifact'''
             - message: cannot specify spec.certSecretRef when spec.type is one of
-                Static, AzureDevOps*, ACRArtifactTag, ECRArtifactTag or GARArtifactTag
-              rule: '!has(self.certSecretRef) || !(self.url == ''Static'' || self.type.startsWith(''AzureDevOps'')
-                || (self.type.endsWith(''ArtifactTag'') && self.type != ''OCIArtifactTag''))'
-            - message: cannot specify spec.secretRef when spec.type is one of Static,
-                ACRArtifactTag, ECRArtifactTag or GARArtifactTag
-              rule: '!has(self.secretRef) || !(self.url == ''Static'' || (self.type.endsWith(''ArtifactTag'')
+                Static, ExternalArtifact, AzureDevOps*, AWSCodeCommit*, ACRArtifactTag,
+                ECRArtifactTag or GARArtifactTag
+              rule: '!has(self.certSecretRef) || !(self.type == ''Static'' || self.type
+                == ''ExternalArtifact'' || self.type.startsWith(''AzureDevOps'') ||
+                self.type.startsWith(''AWSCodeCommit'') || (self.type.endsWith(''ArtifactTag'')
                 && self.type != ''OCIArtifactTag''))'
+            - message: cannot specify spec.secretRef when spec.type is one of Static,
+                ExternalArtifact, AWSCodeCommit*, ACRArtifactTag, ECRArtifactTag or
+                GARArtifactTag
+              rule: '!has(self.secretRef) || !(self.type == ''Static'' || self.type
+                == ''ExternalArtifact'' || self.type.startsWith(''AWSCodeCommit'')
+                || (self.type.endsWith(''ArtifactTag'') && self.type != ''OCIArtifactTag''))'
+            - message: spec.selectors must be set when spec.type is 'ExternalArtifact'
+              rule: self.type != 'ExternalArtifact' || (has(self.selectors) && size(self.selectors)
+                > 0)
+            - message: spec.selectors must not be set when spec.type is not 'ExternalArtifact'
+              rule: self.type == 'ExternalArtifact' || !has(self.selectors)
           status:
             description: ResourceSetInputProviderStatus defines the observed state
               of ResourceSetInputProvider.
@@ -1265,11 +1429,15 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.21.0
   name: resourcesets.fluxcd.controlplane.io
 spec:
   group: fluxcd.controlplane.io
   names:
+    categories:
+    - all
+    - fluxcd
+    - fluxcd-appliers
     kind: ResourceSet
     listKind: ResourceSetList
     plural: resourcesets
@@ -1372,6 +1540,15 @@ spec:
                   input provider objects are used. Defaults to flattening all inputs
                   from all providers into a single list of input sets.
                 properties:
+                  includeEmptyProviders:
+                    description: |-
+                      IncludeEmptyProviders controls how input providers that export no
+                      inputs are treated. Only applies when Name is Permute. When true, if
+                      any provider has zero inputs the resulting permutation set is empty
+                      (mathematically correct Cartesian product behavior). When false or
+                      unset (default), providers with zero inputs are silently skipped and
+                      the remaining providers still permute among themselves.
+                    type: boolean
                   name:
                     description: |-
                       Name defines how the inputs are combined when multiple
@@ -1394,6 +1571,9 @@ spec:
                 required:
                 - name
                 type: object
+                x-kubernetes-validations:
+                - message: includeEmptyProviders only applies when name is Permute
+                  rule: '!has(self.includeEmptyProviders) || self.name == ''Permute'''
               inputs:
                 description: Inputs contains the list of ResourceSet inputs.
                 items:
@@ -1491,6 +1671,7 @@ spec:
                 description: Resources contains the list of Kubernetes resources to
                   reconcile.
                 items:
+                  type: object
                   x-kubernetes-preserve-unknown-fields: true
                 type: array
               resourcesTemplate:
@@ -1506,12 +1687,69 @@ spec:
                   The name of the Kubernetes service account to impersonate
                   when reconciling the generated resources.
                 type: string
+              steps:
+                description: |-
+                  Steps contains an ordered list of named steps to reconcile in sequence.
+                  Each step's resources are applied and health-checked before the next
+                  step starts. Mutually exclusive with Resources and ResourcesTemplate.
+                items:
+                  description: |-
+                    ResourceSetStep defines a named step in the ResourceSet reconciliation
+                    sequence. The step's resources are applied and health-checked before
+                    the next step starts.
+                  properties:
+                    name:
+                      description: Name of the step, must be unique within the ResourceSet.
+                      maxLength: 63
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                    resources:
+                      description: Resources contains the list of Kubernetes resources
+                        to reconcile.
+                      items:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                      type: array
+                    resourcesTemplate:
+                      description: |-
+                        ResourcesTemplate is a Go template that generates the list of
+                        Kubernetes resources to reconcile. The template is rendered
+                        as multi-document YAML, the resources should be separated by '---'.
+                        When both Resources and ResourcesTemplate are set, the resulting
+                        objects are merged and deduplicated, with the ones from Resources taking precedence.
+                      type: string
+                    timeout:
+                      description: |-
+                        Timeout is the maximum time to wait for the step's resources to
+                        become ready. When not set, the ResourceSet reconciliation
+                        timeout is used.
+                      pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
+                      type: string
+                  required:
+                  - name
+                  type: object
+                  x-kubernetes-validations:
+                  - message: at least one of resources or resourcesTemplate must be
+                      set
+                    rule: has(self.resources) || has(self.resourcesTemplate)
+                maxItems: 20
+                minItems: 1
+                type: array
+                x-kubernetes-validations:
+                - message: step names must be unique
+                  rule: self.all(s, self.exists_one(t, t.name == s.name))
               wait:
                 description: |-
                   Wait instructs the controller to check the health
                   of all the reconciled resources.
                 type: boolean
             type: object
+            x-kubernetes-validations:
+            - message: steps is mutually exclusive with resources and resourcesTemplate
+              rule: '!has(self.steps) || (!has(self.resources) && !has(self.resourcesTemplate))'
+            - message: at least one of steps, resources or resourcesTemplate must
+                be set
+              rule: has(self.steps) || has(self.resources) || has(self.resourcesTemplate)
           status:
             description: ResourceSetStatus defines the observed state of ResourceSet.
             properties:
@@ -1571,6 +1809,16 @@ spec:
                   - status
                   - type
                   type: object
+                type: array
+              externalChecksumRefs:
+                description: |-
+                  ExternalChecksumRefs lists the ConfigMap and Secret references
+                  discovered in checksumFrom annotations on the last reconciliation
+                  that point to objects not rendered by this ResourceSet. Each entry
+                  has the form "Kind/namespace/name". It is used to trigger a
+                  reconciliation when one of the referenced objects changes.
+                items:
+                  type: string
                 type: array
               history:
                 description: |-
@@ -1717,6 +1965,81 @@ rules:
   - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/part-of: flux-operator
+  name: flux-web-admin
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - fluxcd.controlplane.io
+  - source.toolkit.fluxcd.io
+  - source.extensions.fluxcd.io
+  - kustomize.toolkit.fluxcd.io
+  - helm.toolkit.fluxcd.io
+  - image.toolkit.fluxcd.io
+  - notification.toolkit.fluxcd.io
+  resources:
+  - '*'
+  verbs:
+  - patch
+  - reconcile
+  - suspend
+  - resume
+  - download
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  - daemonsets
+  verbs:
+  - patch
+  - restart
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - create
+  - restart
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods/log
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-web-user
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: flux-operator-cluster-admin
@@ -1738,6 +2061,10 @@ metadata:
   namespace: flux-system
 spec:
   ports:
+  - name: http-web
+    port: 9080
+    protocol: TCP
+    targetPort: 9080
   - name: http
     port: 8080
     protocol: TCP
@@ -1781,7 +2108,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: ghcr.io/controlplaneio-fluxcd/flux-operator:v0.32.0
+        image: ghcr.io/controlplaneio-fluxcd/flux-operator:v0.58.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -1791,6 +2118,9 @@ spec:
           periodSeconds: 20
         name: manager
         ports:
+        - containerPort: 9080
+          name: http-web
+          protocol: TCP
         - containerPort: 8080
           name: http-metrics
           protocol: TCP
