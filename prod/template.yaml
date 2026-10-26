@@ -3,7 +3,7 @@
 kind: Cluster
 name: talos-prod
 kubernetes:
-  version: v1.35.9
+  version: v1.36.5
 talos:
   version: v1.13.12
 features:
