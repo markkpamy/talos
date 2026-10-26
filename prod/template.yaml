@@ -5,7 +5,7 @@ name: talos-prod
 kubernetes:
   version: v1.36.5
 talos:
-  version: v1.13.12
+  version: v1.14.5
 features:
   enableWorkloadProxy: true
   diskEncryption: false
