@@ -52,10 +52,20 @@ helm template cilium cilium/cilium \
   --set k8sServicePort=7445 \
   --set l2announcements.enabled=true \
   --set externalIPs.enabled=true \
+  --set operator.replicas=1 \
   > install-cilium.yaml
 ```
 
 To use a specific version, add `--version X.Y.Z` to the helm template command.
+
+- `operator.replicas=1` is required on this single-node cluster: the chart default is 2, and the second operator
+  pod would stay Pending because of pod anti-affinity.
+- On Windows, **don't run this from Git Bash without `MSYS_NO_PATHCONV=1`**: MSYS rewrites `/sys/fs/cgroup` into
+  `C:/Program Files/Git/sys/fs/cgroup`, which silently breaks the agent. Use PowerShell or export the variable first.
+- Sanity check before committing: re-render the *currently deployed* version with these flags and diff it against
+  the committed file — apart from the random TLS material, it should match.
+- Flux deploys this file: `fleet-infra/infrastructure/prod-talos-cluster/cilium` pulls it by raw URL from `main`
+  every 5 minutes, so **pushing to `main` is the deployment** (once the GitHub mirror and raw CDN have caught up).
 
 ## Updating IP Pool
 
