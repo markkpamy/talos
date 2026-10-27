@@ -49,7 +49,7 @@ After cluster bootstrap, create the required secrets:
 # Export your Age private key to a file
 cat > /tmp/age.key <<EOF
 # created: YYYY-MM-DDTHH:MM:SSZ
-# public key: age14xt22jc4d8p4t5sc7k0fnsy7fuxcgy464rrgkfzt2z2mmmzy835qpkckhd
+# public key: age1q2qz090pzgfaf3flm2v058apewrv3dudq7hsuhxq5rencnvda3dsswpe5f
 AGE-SECRET-KEY-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 EOF
 
@@ -113,7 +113,7 @@ The FluxInstance is configured with:
 
 ## Notes
 
-- The Age recipient used in fleet-infra SOPS files: `age14xt22jc4d8p4t5sc7k0fnsy7fuxcgy464rrgkfzt2z2mmmzy835qpkckhd`
+- The Age recipient used in fleet-infra SOPS files: `age1q2qz090pzgfaf3flm2v058apewrv3dudq7hsuhxq5rencnvda3dsswpe5f`
 - No secrets are committed to the talos repository - all secrets are created manually
 - Flux won't start syncing until both secrets (sops-age and flux-system) are created
 - Once secrets are created, Flux will automatically decrypt all SOPS files in fleet-infra
