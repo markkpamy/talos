@@ -43,11 +43,7 @@ systemExtensions:
 kind: ControlPlane
 labels:
   type: control-plane
-machines:
-  - 4fa22d9e-323e-4f60-b1ed-e839a5b786b9
----
-kind: Machine
-name: 4fa22d9e-323e-4f60-b1ed-e839a5b786b9
-# Talos goes on the 50G scsi0 disk; scsi1 (300G) is the local-path user volume
-install:
-  disk: /dev/sda
+machineClass:
+  name: control-plane
+  size: 1
+

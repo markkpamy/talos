@@ -1,0 +1,21 @@
+## Apply BEFORE `omnictl cluster template sync` on a fresh Omni:
+#  omnictl apply -f install-disk.yaml
+#
+# The template allocates through the control-plane MachineClass, so it can't
+# carry a per-machine install disk. Pin Talos to the 50G scsi0 disk here;
+# scsi1 (300G) must stay free for the local-path UserVolumeConfig.
+metadata:
+  namespace: default
+  type: MachineInstallDiskConfigs.omni.sidero.dev
+  id: 4fa22d9e-323e-4f60-b1ed-e839a5b786b9
+spec:
+  disk: /dev/sda
+---
+# Machines labelled control-plane (set on the boot media) join the cluster.
+metadata:
+  namespace: default
+  type: MachineClasses.omni.sidero.dev
+  id: control-plane
+spec:
+  matchlabels:
+    - control-plane
