@@ -1,5 +1,5 @@
-machine:
-  kubelet:
-    extraArgs:
-      rotate-server-certificates: true
-
+# Serving certs approved by kubelet-serving-cert-approver (extraManifests)
+apiVersion: v1alpha1
+kind: KubeletConfig
+extraArgs:
+  rotate-server-certificates: "true"

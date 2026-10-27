@@ -1,2 +1,11 @@
-cluster:
-    allowSchedulingOnControlPlanes: true
+# Single node: let workloads run on the control plane. Talos 1.14 lists the
+# control-plane taint and LB-exclusion label explicitly in KubeNodeConfig,
+# replacing cluster.allowSchedulingOnControlPlanes.
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+taints:
+  node-role.kubernetes.io/control-plane:
+    $patch: delete
+labels:
+  node.kubernetes.io/exclude-from-external-load-balancers:
+    $patch: delete

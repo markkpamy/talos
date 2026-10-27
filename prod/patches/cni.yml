@@ -1,9 +1,11 @@
-cluster:
-  network:
-    cni:
-      name: none
-machine:
-  features:
-    hostDNS:
-      enabled: true
-      forwardKubeDNSToHost: false
+# No CNI from Talos: Cilium comes from extraManifests.
+# Talos 1.14 multi-doc form of cluster.network.cni.name: none
+apiVersion: v1alpha1
+kind: KubeFlannelCNIConfig
+$patch: delete
+---
+apiVersion: v1alpha1
+kind: ResolverConfig
+hostDNS:
+  enabled: true
+  forwardKubeDNSToHost: false
