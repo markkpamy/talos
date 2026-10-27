@@ -27,8 +27,18 @@ patches:
     file: patches/metrics-server.yml
   - name: local-storage
     file: patches/local-storage.yml
-#systemExtensions:
-#  - siderolabs/iscsi-tools
+# Pinned so the installed image doesn't inherit the boot ISO's extensions
+# (the SaaS ISO came with vmtoolsd, which crash-loops on Proxmox).
+# Same set as the self-hosted install (schematic e4dda754…).
+systemExtensions:
+  - siderolabs/i915
+  - siderolabs/intel-ice-firmware
+  - siderolabs/intel-ucode
+  - siderolabs/iscsi-tools
+  - siderolabs/nvme-cli
+  - siderolabs/qemu-guest-agent
+  - siderolabs/usb-modem-drivers
+  - siderolabs/util-linux-tools
 ---
 kind: ControlPlane
 labels:
