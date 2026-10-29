@@ -1,4 +1,10 @@
 ---
+# Talos's default Corefile (v1.14) plus a toolsera.lan block.
+#
+# Talos creates its own `coredns` ConfigMap at bootstrap and only creates
+# objects that don't exist yet, so this extraManifest races the default and can
+# lose. fleet-infra (infrastructure/prod-talos-cluster/coredns) applies this
+# same file through Flux so the custom block is restored after every bootstrap.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,21 +18,32 @@ data:
             lameduck 5s
         }
         ready
+        log . {
+            class error
+        }
+        prometheus :9153
+
         kubernetes cluster.local in-addr.arpa ip6.arpa {
             pods insecure
             fallthrough in-addr.arpa ip6.arpa
             ttl 30
         }
-        prometheus :9153
-        forward . /etc/resolv.conf
-        cache 30
+        forward . /etc/resolv.conf {
+           max_concurrent 1000
+        }
+        cache 30 {
+           disable success cluster.local
+           disable denial cluster.local
+        }
         loop
         reload
         loadbalance
     }
+    # The node resolves through Pi-hole and the router; only Pi-hole knows
+    # toolsera.lan, so these names must not go through /etc/resolv.conf.
     toolsera.lan:53 {
         errors
         cache 30
         forward . 192.168.1.184
-        log
+        prometheus :9153
     }
